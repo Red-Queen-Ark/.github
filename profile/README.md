@@ -210,30 +210,6 @@ rqark-task ─────────┘                      │
 | Data | `rqark-data-cloud` | Accounts, groups, API keys and stored data — the source of truth for identity |
 | Interfaces | `rqark-tui`, `rqark-cloud-web-ui` | Terminal and browser fronts for the same system |
 
-## Repositories
-
-| Repository | Language | What it is |
-| --- | --- | --- |
-| [rqark-core](https://github.com/Red-Queen-Ark/rqark-core) | Python | A stateless agent engine. The `openai` package gives you a client; this adds the loop on top of it — same protocol, same streaming, nothing replaced. |
-| [rqark-app](https://github.com/Red-Queen-Ark/rqark-app) | Python | Session, provider and agent management on top of `rqark-core`, with an optional data cloud for memory, todos and settings. |
-| [rqark-sandbox](https://github.com/Red-Queen-Ark/rqark-sandbox) | Python | A Docker workspace for agents: file, shell and git tools that run inside a per-user container and cannot leave `/workspace`. |
-| [rqark-agent-cloud](https://github.com/Red-Queen-Ark/rqark-agent-cloud) | Python | The HTTP and WebSocket service over `rqark-app`: chat, ASR, voice, sandboxed workspace. |
-| [rqark-task](https://github.com/Red-Queen-Ark/rqark-task) | Python | The worker that claims scheduled agent runs from the data cloud and reports the outcome back. |
-| [rqark-data-cloud](https://github.com/Red-Queen-Ark/rqark-data-cloud) | Go | Accounts, groups, API keys and per-account data — agents, providers, sessions, projects, tasks, todos, memory, usage. |
-| [rqark-cloud-web-ui](https://github.com/Red-Queen-Ark/rqark-cloud-web-ui) | Vue, Go | The console: chat, agents, tasks, todos and workspace in one Vue app, which also builds as a Wails desktop client. |
-| [rqark-tui](https://github.com/Red-Queen-Ark/rqark-tui) | Python | Terminal client built on Textual: one session per project directory, agents from `~/.rqark/agents/`. |
-
-The published images — `rqark-data-cloud`, `rqark-agent-cloud`, `rqark-task` and `rqark-cloud-web-ui` — are on GHCR and are what the compose file above pulls. The four services sit on one Docker network and address each other by service name; the console reaches both backends from a single origin, so the browser never needs a second port.
-
-## Design rules the code keeps
-
-- **Local by default.** Without a cloud service, every local feature works and no data leaves the machine.
-- **One system, not one app.** Interfaces own no data; `rqark-data-cloud` does.
-- **It does not stop at the first error.** Provider failure, context overflow and long tool calls are handled by switching, compacting and retrying.
-- **It shows its work.** Thinking, tool calls, results and the plan stream into the interface as they happen.
-- **It is honest about what it does not know.** Fetched pages are graded by source tier.
-- **The agent does not touch the host.** Outside your own machine, every file, shell and git call goes to `rqark-sandbox`.
-
 ## Contributing
 
 Each repository carries its own `CONTRIBUTING.md` and `AGENTS.md`; read those before opening a change. Commits follow Conventional Commits, branches are `type/short-topic`, and releases are tags on `main`. Everything here is MIT licensed.
