@@ -165,7 +165,7 @@ The values in this file are for a local trial, not a deployment: `SECRET_KEY` an
 
 ## What this is
 
-Red Queen Ark is meant to hold more than one part of your life: meetings, bookkeeping, customer replies, groceries, schedules. It is not a coding tool with extra features — memory matters more than code intelligence, continuity more than speed, and a record of what was done more than a clever answer.
+Red Queen Ark is meant to hold more than one part of your life, without being built for any single one of them: what it gives you is one memory, todos that carry due dates, and scheduled work the agent runs on its own. It is not a coding tool with extra features — memory matters more than code intelligence, continuity more than speed, and a record of what was done more than a clever answer.
 
 It runs where you put it. The same engine serves a terminal client and a browser console, in-process on your own machine or as a service that stays up after you close the laptop. Without a cloud service everything stays in `~/.rqark/`; with one, sessions, agents and settings follow you across devices — hosted by you, if you prefer.
 
