@@ -16,7 +16,7 @@ One assistant, one memory, one set of settings — in a terminal, in a browser, 
 
 ## Quick start
 
-One compose file brings up the whole stack: the data cloud with its Postgres and Redis, the agent cloud, the task worker, and the web console. Every image is published on GHCR, so nothing is built locally.
+One compose file brings up the whole stack: the data cloud, the agent cloud, the task worker, and the web console, with the two stores they need alongside them. Every image is published on GHCR, so nothing is built locally.
 
 ```bash
 mkdir rqark && cd rqark
@@ -167,24 +167,48 @@ The values in this file are for a local trial, not a deployment: `SECRET_KEY` an
 
 Red Queen Ark is meant to hold more than one part of your life: meetings, bookkeeping, customer replies, groceries, schedules. It is not a coding tool with extra features — memory matters more than code intelligence, continuity more than speed, and a record of what was done more than a clever answer.
 
-It runs where you put it. The same engine serves a terminal client, a browser client, and a service you control. Everything stays in `~/.rqark/` until you connect a data cloud; after that, sessions, agents and settings follow you across devices — hosted by you, if you prefer.
+It runs where you put it. The same engine serves a terminal client and a browser console, in-process on your own machine or as a service that stays up after you close the laptop. Without a cloud service everything stays in `~/.rqark/`; with one, sessions, agents and settings follow you across devices — hosted by you, if you prefer.
 
 ## How the parts fit
 
+One runtime, `rqark-app`, holds a conversation. Three programs drive it, and one service keeps what they write down.
+
+The console is the only place where the browser reaches two backends from one origin. Those two, and the worker beside them, are the services that run a workspace:
+
 ```
-rqark-tui  ─┐
-            ├──▶  rqark-app  ──▶  rqark-core  ──▶  model provider
-web chat  ──┘         │
-                      └──▶  rqark-data-cloud   (accounts, sessions, agents, memory)
+rqark-cloud-web-ui ─┬──▶ /api        ──▶ rqark-data-cloud
+                    ├──▶ /agent-api  ──▶ rqark-agent-cloud ┐
+                    └──▶ rqark-task────────────────────────┴──▶ rqark-sandbox
 ```
+
+Behind it, the three drivers all reach the same runtime:
+
+```
+rqark-tui ──────────┐
+rqark-agent-cloud ──┼──▶ rqark-app ──▶ rqark-core ──▶ model provider
+rqark-task ─────────┘                      │
+                                           └──▶ tools
+```
+
+`rqark-app` is the seam. Everything above it is a way of starting a conversation; everything below it is what a conversation can do.
+
+- **The engine is a library, not a service.** `rqark-core` opens no socket, reads no config and writes nothing down. It holds the turn loop, the tools and an in-memory event stream; its only outbound call is to the model provider.
+- **The runtime is what you embed.** `rqark-app` adds sessions, provider rotation and agents on top. `rqark-tui` imports it and runs it in the user's own process, so closing the terminal ends the conversation and nothing is left listening.
+- **The agent cloud is that same runtime, made reachable.** It puts one `rqark-app` behind a WebSocket per conversation. That is what keeps a chat alive after the tab closes, and what puts the microphone somewhere the browser can reach.
+- **Scheduled work gets its own driver.** `rqark-data-cloud` holds the schedule, `rqark-task` claims what is due over an internal endpoint and runs it through `rqark-app`. A scheduled run therefore never shares an event loop with a live chat, and the worker can be scaled or stopped on its own.
+- **The sandbox is swapped in, not required.** `rqark-app` has no dependency on `rqark-sandbox`. The agent cloud and the task worker build a workspace and hand the agent container-backed file, shell and git tools in place of the host ones. Without that, the same conversation reads and writes the host, which is what the terminal does.
+- **The provider key never leaves the data cloud.** A turn is proxied with the stored provider, so neither the terminal nor the agent cloud holds an API key.
+- **The data cloud is the copy that follows you.** The terminal reaches it through `rqark-app`'s client, the agent cloud uses it for identity and the stored provider, and the task worker claims runs from it. Its tables are the ones worth naming: agents, providers, sessions and their messages, projects, tasks and runs, todos, memory, SOPs and usage.
 
 | Layer | Repository | Role |
 | --- | --- | --- |
 | Engine | `rqark-core` | Stateless: the turn loop, tool calls, live prompts, one streaming event interface |
 | Runtime | `rqark-app` | Sessions that resume, providers that fail over, agents, memory |
-| Service | `rqark-agent-cloud` | Chat WebSocket, speech, scheduled tasks, sandboxed workspace |
+| Tools | `rqark-sandbox` | File, shell and git inside a per-user container, never on the host |
+| Service | `rqark-agent-cloud` | Chat WebSocket, speech, sandboxed workspace |
+| Worker | `rqark-task` | Claims scheduled runs and executes them in the background |
 | Data | `rqark-data-cloud` | Accounts, groups, API keys and stored data — the source of truth for identity |
-| Interfaces | `rqark-tui`, web clients | Terminal and browser fronts for the same system |
+| Interfaces | `rqark-tui`, `rqark-cloud-web-ui` | Terminal and browser fronts for the same system |
 
 ## Repositories
 
@@ -192,10 +216,14 @@ web chat  ──┘         │
 | --- | --- | --- |
 | [rqark-core](https://github.com/Red-Queen-Ark/rqark-core) | Python | A stateless agent engine. The `openai` package gives you a client; this adds the loop on top of it — same protocol, same streaming, nothing replaced. |
 | [rqark-app](https://github.com/Red-Queen-Ark/rqark-app) | Python | Session, provider and agent management on top of `rqark-core`, with an optional data cloud for memory, todos and settings. |
-| [rqark-agent-cloud](https://github.com/Red-Queen-Ark/rqark-agent-cloud) | Python | The HTTP and WebSocket service over `rqark-app`: chat, ASR, voice, tasks, sandboxed workspace. |
-| [rqark-data-cloud](https://github.com/Red-Queen-Ark/rqark-data-cloud) | Go | Accounts, groups, API keys and per-account data. Gin, GORM, Postgres, Redis. |
+| [rqark-sandbox](https://github.com/Red-Queen-Ark/rqark-sandbox) | Python | A Docker workspace for agents: file, shell and git tools that run inside a per-user container and cannot leave `/workspace`. |
+| [rqark-agent-cloud](https://github.com/Red-Queen-Ark/rqark-agent-cloud) | Python | The HTTP and WebSocket service over `rqark-app`: chat, ASR, voice, sandboxed workspace. |
+| [rqark-task](https://github.com/Red-Queen-Ark/rqark-task) | Python | The worker that claims scheduled agent runs from the data cloud and reports the outcome back. |
+| [rqark-data-cloud](https://github.com/Red-Queen-Ark/rqark-data-cloud) | Go | Accounts, groups, API keys and per-account data — agents, providers, sessions, projects, tasks, todos, memory, usage. |
+| [rqark-cloud-web-ui](https://github.com/Red-Queen-Ark/rqark-cloud-web-ui) | Vue, Go | The console: chat, agents, tasks, todos and workspace in one Vue app, which also builds as a Wails desktop client. |
 | [rqark-tui](https://github.com/Red-Queen-Ark/rqark-tui) | Python | Terminal client built on Textual: one session per project directory, agents from `~/.rqark/agents/`. |
-| [rqark-sandbox](https://github.com/Red-Queen-Ark/rqark-sandbox) | Python | The isolated environment an agent runs in when it is not on your own machine. |
+
+The published images — `rqark-data-cloud`, `rqark-agent-cloud`, `rqark-task` and `rqark-cloud-web-ui` — are on GHCR and are what the compose file above pulls. The four services sit on one Docker network and address each other by service name; the console reaches both backends from a single origin, so the browser never needs a second port.
 
 ## Design rules the code keeps
 
@@ -204,7 +232,8 @@ web chat  ──┘         │
 - **It does not stop at the first error.** Provider failure, context overflow and long tool calls are handled by switching, compacting and retrying.
 - **It shows its work.** Thinking, tool calls, results and the plan stream into the interface as they happen.
 - **It is honest about what it does not know.** Fetched pages are graded by source tier.
+- **The agent does not touch the host.** Outside your own machine, every file, shell and git call goes to `rqark-sandbox`.
 
 ## Contributing
 
-Each repository carries its own `CONTRIBUTING.md` and `AGENTS.md`; read those before opening a change. Everything here is MIT licensed.
+Each repository carries its own `CONTRIBUTING.md` and `AGENTS.md`; read those before opening a change. Commits follow Conventional Commits, branches are `type/short-topic`, and releases are tags on `main`. Everything here is MIT licensed.
