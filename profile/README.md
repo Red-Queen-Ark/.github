@@ -14,40 +14,6 @@ One assistant, one memory, one set of settings — in a terminal, in a browser, 
 
 ---
 
-## What this is
-
-Red Queen Ark is meant to hold more than one part of your life: meetings, bookkeeping, customer replies, groceries, schedules. It is not a coding tool with extra features — memory matters more than code intelligence, continuity more than speed, and a record of what was done more than a clever answer.
-
-It runs where you put it. The same engine serves a terminal client, a browser client, and a service you control. Everything stays in `~/.rqark/` until you connect a data cloud; after that, sessions, agents and settings follow you across devices — hosted by you, if you prefer.
-
-## How the parts fit
-
-```
-rqark-tui  ─┐
-            ├──▶  rqark-app  ──▶  rqark-core  ──▶  model provider
-web chat  ──┘         │
-                      └──▶  rqark-data-cloud   (accounts, sessions, agents, memory)
-```
-
-| Layer | Repository | Role |
-| --- | --- | --- |
-| Engine | `rqark-core` | Stateless: the turn loop, tool calls, live prompts, one streaming event interface |
-| Runtime | `rqark-app` | Sessions that resume, providers that fail over, agents, memory |
-| Service | `rqark-agent-cloud` | Chat WebSocket, speech, scheduled tasks, sandboxed workspace |
-| Data | `rqark-data-cloud` | Accounts, groups, API keys and stored data — the source of truth for identity |
-| Interfaces | `rqark-tui`, web clients | Terminal and browser fronts for the same system |
-
-## Repositories
-
-| Repository | Language | What it is |
-| --- | --- | --- |
-| [rqark-core](https://github.com/Red-Queen-Ark/rqark-core) | Python | A stateless agent engine. The `openai` package gives you a client; this adds the loop on top of it — same protocol, same streaming, nothing replaced. |
-| [rqark-app](https://github.com/Red-Queen-Ark/rqark-app) | Python | Session, provider and agent management on top of `rqark-core`, with an optional data cloud for memory, todos and settings. |
-| [rqark-agent-cloud](https://github.com/Red-Queen-Ark/rqark-agent-cloud) | Python | The HTTP and WebSocket service over `rqark-app`: chat, ASR, voice, tasks, sandboxed workspace. |
-| [rqark-data-cloud](https://github.com/Red-Queen-Ark/rqark-data-cloud) | Go | Accounts, groups, API keys and per-account data. Gin, GORM, Postgres, Redis. |
-| [rqark-tui](https://github.com/Red-Queen-Ark/rqark-tui) | Python | Terminal client built on Textual: one session per project directory, agents from `~/.rqark/agents/`. |
-| [rqark-sandbox](https://github.com/Red-Queen-Ark/rqark-sandbox) | Python | The isolated environment an agent runs in when it is not on your own machine. |
-
 ## Quick start
 
 One compose file brings up the whole stack: the data cloud with its Postgres and Redis, the agent cloud, the task worker, and the web console. Every image is published on GHCR, so nothing is built locally.
@@ -196,6 +162,40 @@ networks:
 ```
 
 The values in this file are for a local trial, not a deployment: `SECRET_KEY` and `INTERNAL_TOKEN` sign sessions and the calls between the services, and the database password is `admin`. Replace all three before the stack is reachable from anywhere but your own machine, and keep the two `INTERNAL_TOKEN` entries identical. Both the agent cloud and the task worker mount `docker.sock` because the sandbox runs as a sibling container next to them.
+
+## What this is
+
+Red Queen Ark is meant to hold more than one part of your life: meetings, bookkeeping, customer replies, groceries, schedules. It is not a coding tool with extra features — memory matters more than code intelligence, continuity more than speed, and a record of what was done more than a clever answer.
+
+It runs where you put it. The same engine serves a terminal client, a browser client, and a service you control. Everything stays in `~/.rqark/` until you connect a data cloud; after that, sessions, agents and settings follow you across devices — hosted by you, if you prefer.
+
+## How the parts fit
+
+```
+rqark-tui  ─┐
+            ├──▶  rqark-app  ──▶  rqark-core  ──▶  model provider
+web chat  ──┘         │
+                      └──▶  rqark-data-cloud   (accounts, sessions, agents, memory)
+```
+
+| Layer | Repository | Role |
+| --- | --- | --- |
+| Engine | `rqark-core` | Stateless: the turn loop, tool calls, live prompts, one streaming event interface |
+| Runtime | `rqark-app` | Sessions that resume, providers that fail over, agents, memory |
+| Service | `rqark-agent-cloud` | Chat WebSocket, speech, scheduled tasks, sandboxed workspace |
+| Data | `rqark-data-cloud` | Accounts, groups, API keys and stored data — the source of truth for identity |
+| Interfaces | `rqark-tui`, web clients | Terminal and browser fronts for the same system |
+
+## Repositories
+
+| Repository | Language | What it is |
+| --- | --- | --- |
+| [rqark-core](https://github.com/Red-Queen-Ark/rqark-core) | Python | A stateless agent engine. The `openai` package gives you a client; this adds the loop on top of it — same protocol, same streaming, nothing replaced. |
+| [rqark-app](https://github.com/Red-Queen-Ark/rqark-app) | Python | Session, provider and agent management on top of `rqark-core`, with an optional data cloud for memory, todos and settings. |
+| [rqark-agent-cloud](https://github.com/Red-Queen-Ark/rqark-agent-cloud) | Python | The HTTP and WebSocket service over `rqark-app`: chat, ASR, voice, tasks, sandboxed workspace. |
+| [rqark-data-cloud](https://github.com/Red-Queen-Ark/rqark-data-cloud) | Go | Accounts, groups, API keys and per-account data. Gin, GORM, Postgres, Redis. |
+| [rqark-tui](https://github.com/Red-Queen-Ark/rqark-tui) | Python | Terminal client built on Textual: one session per project directory, agents from `~/.rqark/agents/`. |
+| [rqark-sandbox](https://github.com/Red-Queen-Ark/rqark-sandbox) | Python | The isolated environment an agent runs in when it is not on your own machine. |
 
 ## Design rules the code keeps
 
