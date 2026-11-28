@@ -1,7 +1,7 @@
 services:
 
   cloud-web-ui:
-    image: ghcr.io/red-queen-ark/rqark-cloud-web-ui:0.27.2
+    image: ghcr.io/red-queen-ark/rqark-cloud-web-ui:0.27.3
     container_name: rqark-cloud-web-ui
     environment:
       - DATA_CLOUD_URL=http://data-cloud:7302
@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
 
   agent-cloud:
-    image: ghcr.io/red-queen-ark/rqark-agent-cloud:0.17.4
+    image: ghcr.io/red-queen-ark/rqark-agent-cloud:0.17.5
     container_name: rqark-agent-cloud
     environment:
       - DATA_CLOUD_URL=http://data-cloud:7302
