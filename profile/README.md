@@ -36,7 +36,7 @@ The compose file as it stands:
 services:
 
   cloud-web-ui:
-    image: ghcr.io/red-queen-ark/rqark-cloud-web-ui:0.27.2
+    image: ghcr.io/red-queen-ark/rqark-cloud-web-ui
     container_name: rqark-cloud-web-ui
     environment:
       - DATA_CLOUD_URL=http://data-cloud:7302
@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   agent-cloud:
-    image: ghcr.io/red-queen-ark/rqark-agent-cloud:0.17.4
+    image: ghcr.io/red-queen-ark/rqark-agent-cloud
     container_name: rqark-agent-cloud
     environment:
       - DATA_CLOUD_URL=http://data-cloud:7302
@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
 
   task:
-    image: ghcr.io/red-queen-ark/rqark-task:0.1.5
+    image: ghcr.io/red-queen-ark/rqark-task
     container_name: rqark-task
     environment:
       - DATA_CLOUD_URL=http://data-cloud:7302
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
 
   data-cloud:
-    image: ghcr.io/red-queen-ark/rqark-data-cloud:0.18.3
+    image: ghcr.io/red-queen-ark/rqark-data-cloud
     container_name: rqark-data-cloud
     environment:
       - PORT=7302
